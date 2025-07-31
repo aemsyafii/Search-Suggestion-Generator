@@ -1,0 +1,1 @@
+// File deprecated - using simplified modal approach instead
