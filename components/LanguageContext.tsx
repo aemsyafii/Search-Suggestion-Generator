@@ -25,6 +25,7 @@ export interface Translations {
     bing: string;
     duckduckgo: string;
     yahoo: string;
+    mbingedgear: string;
     bingedgear: string;
   };
   
@@ -157,6 +158,7 @@ export const translations: Record<string, Translations> = {
       bing: "Bing", 
       duckduckgo: "DuckDuckGo",
       yahoo: "Yahoo",
+      mbingedgear: "M-Bing",
       bingedgear: "Q-Bing",
     },
     
@@ -272,6 +274,7 @@ export const translations: Record<string, Translations> = {
       bing: "Bing",
       duckduckgo: "DuckDuckGo", 
       yahoo: "Yahoo",
+      mbingedgear: "M-Bing",
       bingedgear: "Q-Bing",
     },
     
@@ -387,6 +390,7 @@ export const translations: Record<string, Translations> = {
       bing: "بينغ",
       duckduckgo: "دك دك جو",
       yahoo: "ياهو",
+      mbingedgear: "M-Bing",
       bingedgear: "Q-Bing",
     },
     
@@ -502,6 +506,7 @@ export const translations: Record<string, Translations> = {
       bing: "必应",
       duckduckgo: "DuckDuckGo",
       yahoo: "雅虎",
+      mbingedgear: "M-Bing",
       bingedgear: "Q-Bing",
     },
     
@@ -617,6 +622,7 @@ export const translations: Record<string, Translations> = {
       bing: "ビング",
       duckduckgo: "DuckDuckGo",
       yahoo: "ヤフー",
+      mbingedgear: "M-Bing",
       bingedgear: "Q-Bing",
     },
     
@@ -732,6 +738,7 @@ export const translations: Record<string, Translations> = {
       bing: "Bing",
       duckduckgo: "DuckDuckGo",
       yahoo: "Yahoo",
+      mbingedgear: "M-Bing",
       bingedgear: "Q-Bing",
     },
     

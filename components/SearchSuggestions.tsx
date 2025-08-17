@@ -94,6 +94,7 @@ export function SearchSuggestions() {
     { name: t.searchEngines.bing, value: 'bing', url: 'https://www.bing.com/search?q=' },
     { name: t.searchEngines.duckduckgo, value: 'duckduckgo', url: 'https://duckduckgo.com/?q=' },
     { name: t.searchEngines.yahoo, value: 'yahoo', url: 'https://search.yahoo.com/search?p=' },
+    { name: t.searchEngines.mbingedgear, value: 'mbingedgear', url: 'https://www.bing.com/search?q=' },
     { name: t.searchEngines.bingedgear, value: 'bingedgear', url: 'https://www.bing.com/search?q=' },
   ];
 
@@ -103,6 +104,11 @@ export function SearchSuggestions() {
     if (!engine) return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
     
     const encodedQuery = encodeURIComponent(query);
+    
+    // Special handling for M-Bing with required parameters
+    if (selectedEngine === 'mbingedgear') {
+      return `https://www.bing.com/search?q=${encodedQuery}&form=EDGEAR&PC=U316`;
+    }
     
     // Special handling for Q-Bing with required parameters
     if (selectedEngine === 'bingedgear') {
@@ -115,8 +121,8 @@ export function SearchSuggestions() {
 
   // Check if search engine supports iframe display
   const supportsIframe = useCallback((engine: string): boolean => {
-    // Only Bing and Q-Bing typically support iframe embedding
-    return ['bing', 'bingedgear'].includes(engine);
+    // Only Bing, M-Bing and Q-Bing typically support iframe embedding
+    return ['bing', 'mbingedgear', 'bingedgear'].includes(engine);
   }, []);
 
 
@@ -298,7 +304,7 @@ export function SearchSuggestions() {
     
     // Load and validate search engine
     if (savedSearchEngine) {
-      const validEngines = ['google', 'bing', 'duckduckgo', 'yahoo', 'bingedgear'];
+      const validEngines = ['google', 'bing', 'duckduckgo', 'yahoo', 'mbingedgear', 'bingedgear'];
       if (validEngines.includes(savedSearchEngine)) {
         setSelectedEngine(savedSearchEngine);
       }
