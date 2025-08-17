@@ -33,6 +33,17 @@ export function SearchSuggestions() {
   const [sameTab, setSameTab] = useState<boolean>(false);
   const [behaviorMode, setBehaviorMode] = useState<'new-tab' | 'same-tab' | 'floating-tab' | 'copy'>('new-tab');
   const [darkMode, setDarkMode] = useState<boolean>(true);
+  
+  // Auto Mode Feature States - Updated default duration to 7-11
+  const [autoRunEnabled, setAutoRunEnabled] = useState<boolean>(false);
+  const [autoRunDuration, setAutoRunDuration] = useState<number>(9); // Default 9 seconds (will be randomized)
+  const [autoRunMinDuration, setAutoRunMinDuration] = useState<number>(7);
+  const [autoRunMaxDuration, setAutoRunMaxDuration] = useState<number>(11); // Changed from 9 to 11
+  const [autoRunTimer, setAutoRunTimer] = useState<NodeJS.Timeout | null>(null);
+  const [autoRunTimeLeft, setAutoRunTimeLeft] = useState<number>(0);
+  const [autoRunCountdown, setAutoRunCountdown] = useState<NodeJS.Timeout | null>(null);
+  const [isAutoRunning, setIsAutoRunning] = useState<boolean>(false);
+  
   const [floatingTab, setFloatingTab] = useState<{ 
     isOpen: boolean; 
     url: string; 
@@ -93,9 +104,9 @@ export function SearchSuggestions() {
     
     const encodedQuery = encodeURIComponent(query);
     
-    // Special handling for Bing Edgear with required parameters
+    // Special handling for Q-Bing with required parameters
     if (selectedEngine === 'bingedgear') {
-      return `https://www.bing.com/search?q=${encodedQuery}&form=EDGEAR&PC=U316`;
+      return `https://www.bing.com/search?q=${encodedQuery}&form=QBRE`;
     }
     
     // Use the standard URL format for all engines
@@ -104,14 +115,160 @@ export function SearchSuggestions() {
 
   // Check if search engine supports iframe display
   const supportsIframe = useCallback((engine: string): boolean => {
-    // Only Bing and Bing Edgear typically support iframe embedding
+    // Only Bing and Q-Bing typically support iframe embedding
     return ['bing', 'bingedgear'].includes(engine);
   }, []);
 
-  // Load settings from localStorage
+
+
+  // Auto Mode Helper Functions
+  const clearAutoRunTimers = useCallback(() => {
+    if (autoRunTimer) {
+      clearTimeout(autoRunTimer);
+      setAutoRunTimer(null);
+    }
+    if (autoRunCountdown) {
+      clearInterval(autoRunCountdown);
+      setAutoRunCountdown(null);
+    }
+    setAutoRunTimeLeft(0);
+    setIsAutoRunning(false);
+  }, [autoRunTimer, autoRunCountdown]);
+
+  const getRandomDuration = useCallback(() => {
+    return Math.floor(Math.random() * (autoRunMaxDuration - autoRunMinDuration + 1)) + autoRunMinDuration;
+  }, [autoRunMinDuration, autoRunMaxDuration]);
+
+  // Sort suggestions: opened items first (by most recently opened), then unopened
+  const sortedSuggestions = useMemo(() => {
+    return [...suggestions].sort((a, b) => {
+      if (a.opened && !b.opened) return -1;
+      if (!a.opened && b.opened) return 1;
+      if (a.opened && b.opened) {
+        return (b.openedAt || 0) - (a.openedAt || 0);
+      }
+      return 0;
+    });
+  }, [suggestions]);
+
+  // Optimized grouped suggestions with memoization
+  const allSuggestionsForModal = useMemo(() => {
+    return showTrending ? trendingSuggestions : sortedSuggestions;
+  }, [showTrending, trendingSuggestions, sortedSuggestions]);
+
+  // Get preview suggestions: only show unclicked suggestions, replace clicked ones with new ones
+  const previewSuggestions = useMemo(() => {
+    if (showTrending) {
+      // For trending topics, show unopened ones first, then opened ones
+      const unopened = trendingSuggestions.filter(s => !s.opened);
+      return unopened.slice(0, 3);
+    }
+    
+    const unopened = sortedSuggestions.filter(s => !s.opened);
+    
+    // Always show up to 3 unclicked suggestions
+    return unopened.slice(0, 3);
+  }, [sortedSuggestions, showTrending, trendingSuggestions]);
+
+  // Auto mode now picks from ALL unopened suggestions using current state
+  const getRandomFromAllUnopenedWithState = useCallback((currentOpenedItems: Set<string>) => {
+    // Get ALL suggestions first, then filter using current openedItems Set
+    const allSuggestions = showTrending ? trendingSuggestions : suggestions;
+    const allUnopenedSuggestions = allSuggestions.filter(s => !currentOpenedItems.has(s.id));
+    
+    if (allUnopenedSuggestions.length === 0) {
+      return null;
+    }
+    
+    // Pick random from ALL unopened suggestions
+    const randomIndex = Math.floor(Math.random() * allUnopenedSuggestions.length);
+    const selected = allUnopenedSuggestions[randomIndex];
+    return selected;
+  }, [suggestions, trendingSuggestions, showTrending]);
+
+  const startAutoRunTimer = useCallback((duration: number) => {
+    clearAutoRunTimers();
+    
+    setIsAutoRunning(true);
+    setAutoRunTimeLeft(duration);
+    
+    // Countdown timer for UI
+    const countdownInterval = setInterval(() => {
+      setAutoRunTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    setAutoRunCountdown(countdownInterval);
+    
+    // Main timer for auto close
+    const mainTimer = setTimeout(() => {
+      // Close floating tab
+      setFloatingTab({ isOpen: false, url: '', title: '', hasError: false });
+      
+      // Clear timers
+      clearAutoRunTimers();
+      
+      // Auto open next suggestion after a brief delay to allow state to settle
+      setTimeout(() => {
+        if (autoRunEnabled && behaviorMode === 'floating-tab') {
+          // Use current state directly to make decisions
+          setOpenedItems(currentOpenedItems => {
+            // Use current openedItems state to check and get next suggestion
+            const nextSuggestion = getRandomFromAllUnopenedWithState(currentOpenedItems);
+            
+            if (nextSuggestion) {
+              // Use setTimeout to break out of setState
+              setTimeout(() => handleSuggestionClick(nextSuggestion), 0);
+            } else {
+              // No more suggestions, properly stop auto mode
+              setIsAutoRunning(false);
+              
+              // Show completion message
+              const completionMessages = {
+                'en': 'Auto Mode completed - all suggestions explored!',
+                'id': 'Mode Otomatis selesai - semua saran telah dijelajahi!',
+                'ar': 'اكتمل الوضع التلقائي - تم استكشاف جميع الاقتراحات!',
+                'zh': '自动模式完成 - 所有建议都已探索！',
+                'ja': '自動モード完了 - すべての提案が探索されました！',
+                'ru': 'Автоматический режим завершен - все предложения изучены!',
+                'es': '¡Modo Automático completado - todas las sugerencias exploradas!',
+                'fr': 'Mode Automatique terminé - toutes les suggestions explorées !',
+                'de': 'Automatischer Modus abgeschlossen - alle Vorschläge erkundet!',
+                'pt': 'Modo Automático concluído - todas as sugestões exploradas!',
+                'hi': 'ऑटो मोड पूर्ण - सभी सुझाव खोजे गए!',
+                'ko': '자동 모드 완료 - 모든 제안이 탐색되었습니다!',
+                'he': 'מצב אוטומטי הושלם - כל ההצעות נחקרו!'
+              };
+              
+              toast.success(completionMessages[language] || completionMessages['en'], {
+                duration: 4000,
+              });
+            }
+            
+            return currentOpenedItems; // Return unchanged
+          });
+        }
+      }, 1000); // Increased delay to allow all state updates to settle
+    }, duration * 1000);
+    
+    setAutoRunTimer(mainTimer);
+  }, [autoRunEnabled, behaviorMode, clearAutoRunTimers, getRandomFromAllUnopenedWithState, language, showTrending, suggestions, trendingSuggestions]);
+
+  // Load settings from localStorage - Updated default max duration to 11
   useEffect(() => {
     const savedBehaviorMode = localStorage.getItem('behavior-mode') as 'new-tab' | 'same-tab' | 'floating-tab' | 'copy' || 'new-tab';
     const savedDarkMode = localStorage.getItem('dark-mode');
+    const savedQueryCount = localStorage.getItem('query-count');
+    const savedSearchEngine = localStorage.getItem('search-engine');
+    const savedLanguage = localStorage.getItem('language');
+    const savedAutoRunEnabled = localStorage.getItem('auto-run-enabled');
+    const savedAutoRunMinDuration = localStorage.getItem('auto-run-min-duration');
+    const savedAutoRunMaxDuration = localStorage.getItem('auto-run-max-duration');
+    
     // Default to dark mode if no preference saved
     const isDarkMode = savedDarkMode === null ? true : savedDarkMode === 'true';
     
@@ -120,9 +277,44 @@ export function SearchSuggestions() {
     setSameTab(savedBehaviorMode === 'same-tab');
     setDarkMode(isDarkMode);
     
+    // Load auto mode settings - Updated default max duration
+    setAutoRunEnabled(savedAutoRunEnabled === 'true');
+    setAutoRunMinDuration(savedAutoRunMinDuration ? parseInt(savedAutoRunMinDuration, 10) : 7);
+    setAutoRunMaxDuration(savedAutoRunMaxDuration ? parseInt(savedAutoRunMaxDuration, 10) : 11); // Changed from 9 to 11
+    
+    // Search term always starts empty for fresh experience on every refresh
+    // User wants clean slate each time they visit the app
+    // Remove any previously saved search term to ensure clean start
+    localStorage.removeItem('search-term');
+    
+    // Load and validate query count
+    if (savedQueryCount) {
+      const parsedCount = parseInt(savedQueryCount, 10);
+      if (!isNaN(parsedCount) && [10, 50, 100, 200, 500, 1000].includes(parsedCount)) {
+        setQueryCount(parsedCount);
+        setPreviousQueryCount(parsedCount);
+      }
+    }
+    
+    // Load and validate search engine
+    if (savedSearchEngine) {
+      const validEngines = ['google', 'bing', 'duckduckgo', 'yahoo', 'bingedgear'];
+      if (validEngines.includes(savedSearchEngine)) {
+        setSelectedEngine(savedSearchEngine);
+      }
+    }
+    
+    // Load and validate language
+    if (savedLanguage) {
+      const validLanguages = ['en', 'id', 'ar', 'zh', 'ja', 'ru', 'es', 'fr', 'de', 'pt', 'hi', 'ko'];
+      if (validLanguages.includes(savedLanguage)) {
+        setLanguage(savedLanguage);
+      }
+    }
+    
     // Apply dark mode to document
     document.documentElement.setAttribute('data-bs-theme', isDarkMode ? 'dark' : 'light');
-  }, []);
+  }, [setLanguage]);
 
   // Save settings to localStorage when they change
   useEffect(() => {
@@ -136,10 +328,52 @@ export function SearchSuggestions() {
     document.documentElement.setAttribute('data-bs-theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
+  // Save auto mode settings
+  useEffect(() => {
+    localStorage.setItem('auto-run-enabled', autoRunEnabled.toString());
+  }, [autoRunEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem('auto-run-min-duration', autoRunMinDuration.toString());
+  }, [autoRunMinDuration]);
+
+  useEffect(() => {
+    localStorage.setItem('auto-run-max-duration', autoRunMaxDuration.toString());
+  }, [autoRunMaxDuration]);
+
+  // Save query count to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('query-count', queryCount.toString());
+  }, [queryCount]);
+
+  // Save search engine to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('search-engine', selectedEngine);
+  }, [selectedEngine]);
+
+  // Save language to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('language', language);
+  }, [language]);
+
+  // Search term is not persisted - fresh start on every refresh as requested by user
+
+  // Clear auto mode timers when floating tab is manually closed or behavior mode changes
+  useEffect(() => {
+    if (!floatingTab.isOpen || behaviorMode !== 'floating-tab') {
+      clearAutoRunTimers();
+    }
+  }, [floatingTab.isOpen, behaviorMode, clearAutoRunTimers]);
+
   // Reset opened items when debounced search term changes - optimized for responsiveness
+  // This ensures fresh start for user input (no persistence, clean slate on refresh)
   useEffect(() => {
     if (debouncedSearchTerm !== previousSearchTerm) {
+      // Always reset opened items for fresh suggestion results
       setOpenedItems(new Set());
+      
+      // Clear auto mode when search term changes
+      clearAutoRunTimers();
       
       // If user starts typing, hide trending suggestions
       if (debouncedSearchTerm.trim()) {
@@ -207,7 +441,7 @@ export function SearchSuggestions() {
       
       setPreviousSearchTerm(debouncedSearchTerm);
     }
-  }, [debouncedSearchTerm, queryCount, previousSearchTerm, language]);
+  }, [debouncedSearchTerm, queryCount, previousSearchTerm, language, clearAutoRunTimers]);
 
   // Handle query count changes for existing suggestions - optimized for responsiveness
   useEffect(() => {
@@ -308,37 +542,6 @@ export function SearchSuggestions() {
     }
   }, [language, debouncedSearchTerm, queryCount, showTrending, selectedEngine]);
 
-  // Sort suggestions: opened items first (by most recently opened), then unopened
-  const sortedSuggestions = useMemo(() => {
-    return [...suggestions].sort((a, b) => {
-      if (a.opened && !b.opened) return -1;
-      if (!a.opened && b.opened) return 1;
-      if (a.opened && b.opened) {
-        return (b.openedAt || 0) - (a.openedAt || 0);
-      }
-      return 0;
-    });
-  }, [suggestions]);
-
-  // Optimized grouped suggestions with memoization
-  const allSuggestionsForModal = useMemo(() => {
-    return showTrending ? trendingSuggestions : sortedSuggestions;
-  }, [showTrending, trendingSuggestions, sortedSuggestions]);
-
-  // Get preview suggestions: only show unclicked suggestions, replace clicked ones with new ones
-  const previewSuggestions = useMemo(() => {
-    if (showTrending) {
-      // For trending topics, show unopened ones first, then opened ones
-      const unopened = trendingSuggestions.filter(s => !s.opened);
-      return unopened.slice(0, 3);
-    }
-    
-    const unopened = sortedSuggestions.filter(s => !s.opened);
-    
-    // Always show up to 3 unclicked suggestions
-    return unopened.slice(0, 3);
-  }, [sortedSuggestions, showTrending, trendingSuggestions]);
-
   // Enhanced CSV Download functionality with dynamic format based on mode and filter
   const downloadCSV = useCallback((filteredSuggestions: Suggestion[], filterType: string) => {
     try {
@@ -398,7 +601,7 @@ export function SearchSuggestions() {
           'es': 'no-abiertos', 'fr': 'non-ouverts', 'de': 'nicht-geoeffnet', 'pt': 'nao-abertos',
           'hi': 'unopened', 'ko': 'unopened', 'he': 'unopened'
         }
-      } as Record<string, Record<string, string>>;
+      };
       
       const safeAppName = safeAppNames[langCode] || safeAppNames['en'];
       const safeFilterName = safeFilterNames[filterType]?.[langCode] || safeFilterNames[filterType]?.['en'] || filterType;
@@ -419,7 +622,7 @@ export function SearchSuggestions() {
             
             if (isMixedMode) {
               return {
-                'en': 'Opened/Copied', 'id': 'Dibuka/Disalin', 'ar': 'تم الفتح/النسخ', 'zh': '已打开/复制', 'ja': '開いた/コピー済み', 'ru': 'Открыто/Скопировано',
+                'en': 'Opened/Copied', 'id': 'Dibuka/Disalin', 'ar': 'تم الفتح/النسخ', 'zh': '已打开/复制', 'ja': '開いた/コピー済み', 'ru': 'Открыto/Скопировано',
                 'es': 'Abierto/Copiado', 'fr': 'Ouvert/Copié', 'de': 'Geöffnet/Kopiert', 'pt': 'Aberto/Copiado', 'hi': 'खोला गया/कॉपी किया गया', 'ko': '열림/복사됨', 'he': 'נפתח/הועתק'
               };
             } else if (copyMode || behaviorMode === 'copy') {
@@ -436,9 +639,9 @@ export function SearchSuggestions() {
           })(),
           'remaining': copyMode ? {
             'en': 'Not Copied', 'id': 'Belum Disalin', 'ar': 'لم يتم النسخ', 'zh': '未复制', 'ja': '未コピー', 'ru': 'Не скопировано',
-            'es': 'No copiado', 'fr': 'Non copié', 'de': 'Nicht kopiert', 'pt': 'Não copiado', 'hi': 'कॉपी नहीं किया गया', 'ko': '복사되지 않음', 'he': 'לא הועتק'
+            'es': 'No copiado', 'fr': 'Non copié', 'de': 'Nicht kopiert', 'pt': 'Não copiado', 'hi': 'कॉपी नहीं किया गया', 'ko': '복사되지 않음', 'he': 'לא הועתק'
           } : {
-            'en': 'Not Opened', 'id': 'Belum Dibuka', 'ar': 'لم يتم الفتح', 'zh': '未打开', 'ja': '未開', 'ru': 'Не открыто',
+            'en': 'Not Opened', 'id': 'Belum Dibuka', 'ar': 'لم يتم الفتح', 'zh': '未打开', 'ja': '未開', 'ru': 'Не открыto',
             'es': 'No abierto', 'fr': 'Non ouvert', 'de': 'Nicht geöffnet', 'pt': 'Não aberto', 'hi': 'नहीं खोला गया', 'ko': '열지 않음', 'he': 'לא נפתח'
           }
         };
@@ -562,7 +765,7 @@ export function SearchSuggestions() {
               language === 'id' ? 'Waktu Disalin' :
               language === 'ar' ? 'وقت النسخ' :
               language === 'zh' ? '复制时间' :
-              language === 'ja' ? 'コピー時間' :
+              language === 'ja' ? 'コピー时间' :
               language === 'ru' ? 'Время копирования' :
               language === 'es' ? 'Tiempo copiado' :
               language === 'fr' ? 'Heure de copie' :
@@ -641,7 +844,7 @@ export function SearchSuggestions() {
           },
           'opened': {
             'en': 'Opened', 'id': 'Sudah Dibuka', 'ar': 'تم الفتح', 'zh': '已打开', 'ja': '開いた',
-            'ru': 'Открыто', 'es': 'Abierto', 'fr': 'Ouvert', 'de': 'Geöffnet', 'pt': 'Aberto',
+            'ru': 'Открыto', 'es': 'Abierto', 'fr': 'Ouvert', 'de': 'Geöffnet', 'pt': 'Aberto',
             'hi': 'खोला गया', 'ko': '열림', 'he': 'נפתח'
           },
           'notOpened': {
@@ -1005,28 +1208,40 @@ export function SearchSuggestions() {
   };
 
   const handleSuggestionClick = useCallback(async (suggestion: Suggestion) => {
-    // Mark as opened
+    // Check if already opened to prevent duplicate processing
+    if (openedItems.has(suggestion.id)) {
+      return;
+    }
+    
+    // Mark as opened FIRST to update statistics immediately
     setOpenedItems(prev => new Set([...prev, suggestion.id]));
     
     // Update the suggestion in the appropriate state with action type
     const actionType = copyMode || behaviorMode === 'copy' ? 'copy' : 'search';
     
+    // Update suggestion state immediately for statistics
     if (showTrending) {
-      setTrendingSuggestions(prev => 
-        prev.map(s => 
+      setTrendingSuggestions(prev => {
+        const updated = prev.map(s => 
           s.id === suggestion.id 
             ? { ...s, opened: true, openedAt: Date.now(), actionType }
             : s
-        )
-      );
+        );
+        const stillUnopenedCount = updated.filter(s => !s.opened).length;
+        console.log('Auto run: Updated trending suggestions. Still unopened:', stillUnopenedCount);
+        return updated;
+      });
     } else {
-      setSuggestions(prev => 
-        prev.map(s => 
+      setSuggestions(prev => {
+        const updated = prev.map(s => 
           s.id === suggestion.id 
             ? { ...s, opened: true, openedAt: Date.now(), actionType }
             : s
-        )
-      );
+        );
+        const stillUnopenedCount = updated.filter(s => !s.opened).length;
+        console.log('Auto run: Updated suggestions. Still unopened:', stillUnopenedCount);
+        return updated;
+      });
     }
     
     if (copyMode) {
@@ -1187,6 +1402,12 @@ export function SearchSuggestions() {
           title: suggestion.text,
           hasError: !supportsIframe(selectedEngine) // Pre-set error for known unsupported engines
         });
+        
+        // Start auto run timer if enabled
+        if (autoRunEnabled) {
+          const duration = getRandomDuration();
+          startAutoRunTimer(duration);
+        }
       } else if (behaviorMode === 'same-tab') {
         // Same tab mode: navigate in current tab
         window.location.href = searchUrl;
@@ -1195,13 +1416,16 @@ export function SearchSuggestions() {
         window.open(searchUrl, '_blank');
       }
     }
-  }, [copyMode, behaviorMode, showTrending, selectedEngine, language, t, getSearchUrl, supportsIframe]);
+  }, [copyMode, behaviorMode, showTrending, selectedEngine, language, t, getSearchUrl, supportsIframe, autoRunEnabled, getRandomDuration, startAutoRunTimer]);
 
   const handleRandomTopic = async () => {
     // Always show spin animation for better UX
     setIsSpinning(true);
     setIsLoadingRandom(true);
     setIsGeneratingLarge(false);
+    
+    // Clear any auto run timers when generating new random topics
+    clearAutoRunTimers();
     
     // Clear any existing search term and suggestions
     setSearchTerm('');
@@ -1310,12 +1534,99 @@ export function SearchSuggestions() {
             <span className="text-nowrap">{queryCount} {t.queries.toLowerCase()}</span>
             <span className="text-nowrap">{selectedEngineData?.name}</span>
             <span className="text-nowrap">{t.languages[language as keyof typeof t.languages]}</span>
-            {behaviorMode === 'copy' && <span className="text-nowrap badge bg-info">{t.copyMode}</span>}
+            {behaviorMode === 'copy' && <span className="text-nowrap badge bg-info">{(
+                        language === 'en' ? 'Copy to Clipboard' :
+                        language === 'id' ? 'Salin ke Clipboard' :
+                        language === 'ar' ? 'نسخ إلى الحافظة' :
+                        language === 'zh' ? '复制到剪贴板' :
+                        language === 'ja' ? 'クリップボードにコピー' :
+                        language === 'ru' ? 'Скопировать в буфер' :
+                        language === 'es' ? 'Copiar al Portapapeles' :
+                        language === 'fr' ? 'Copier dans le Presse-papiers' :
+                        language === 'de' ? 'In Zwischenablage kopieren' :
+                        language === 'pt' ? 'Copiar para Área de Transferência' :
+                        language === 'hi' ? 'क्लिपबोर्ड में कॉपी करें' :
+                        language === 'ko' ? '클립보드에 복사' :
+                        'Copy to Clipboard'
+                      )}</span>}
             {behaviorMode === 'same-tab' && <span className="text-nowrap badge bg-secondary">{t.sameTab}</span>}
-            {behaviorMode === 'floating-tab' && <span className="text-nowrap badge bg-primary">{t.floatingTab}</span>}
+            {behaviorMode === 'floating-tab' && (
+              <>
+                <span className="text-nowrap badge bg-primary">{t.floatingTab}</span>
+                {autoRunEnabled && (
+                  <span className="text-nowrap badge bg-success">
+                    {language === 'en' ? 'Auto Mode' :
+                     language === 'id' ? 'Mode Otomatis' :
+                     language === 'ar' ? 'الوضع التلقائي' :
+                     language === 'zh' ? '自动模式' :
+                     language === 'ja' ? '自動モード' :
+                     language === 'ru' ? 'Авто режим' :
+                     language === 'es' ? 'Modo Automático' :
+                     language === 'fr' ? 'Mode Auto' :
+                     language === 'de' ? 'Auto-Modus' :
+                     language === 'pt' ? 'Modo Automático' :
+                     language === 'hi' ? 'ऑटो मोड' :
+                     language === 'ko' ? '자동 모드' :
+                     'Auto Mode'}
+                  </span>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Auto Run Status (when active) */}
+      {isAutoRunning && (
+        <div className="mb-3">
+          <div className="d-flex align-items-center justify-content-between p-3 bg-primary text-white rounded">
+            <div className="d-flex align-items-center gap-2">
+              <i className="bi bi-play-circle-fill"></i>
+              <span className="fw-medium">
+                {language === 'en' ? 'Auto Run Active' :
+                 language === 'id' ? 'Auto Run Aktif' :
+                 language === 'ar' ? 'التشغيل التلقائي نشط' :
+                 language === 'zh' ? '自动运行激活' :
+                 language === 'ja' ? '自動実行アクティブ' :
+                 language === 'ru' ? 'Автозапуск активен' :
+                 language === 'es' ? 'Auto Run Activo' :
+                 language === 'fr' ? 'Exécution automatique active' :
+                 language === 'de' ? 'Automatischer Lauf aktiv' :
+                 language === 'pt' ? 'Auto Run Ativo' :
+                 language === 'hi' ? 'ऑटो रन सक्रिय' :
+                 language === 'ko' ? '자동 실행 활성화' :
+                 'Auto Run Active'}
+              </span>
+            </div>
+            <div className="d-flex align-items-center gap-3">
+              <span className="small auto-run-timer">
+                {language === 'en' ? `Closing in ${autoRunTimeLeft}s` :
+                 language === 'id' ? `Menutup dalam ${autoRunTimeLeft}d` :
+                 language === 'ar' ? `إغلاق في ${autoRunTimeLeft}ث` :
+                 language === 'zh' ? `${autoRunTimeLeft}秒后关闭` :
+                 language === 'ja' ? `${autoRunTimeLeft}秒で閉じる` :
+                 language === 'ru' ? `Закрытие через ${autoRunTimeLeft}с` :
+                 language === 'es' ? `Cerrando en ${autoRunTimeLeft}s` :
+                 language === 'fr' ? `Fermeture dans ${autoRunTimeLeft}s` :
+                 language === 'de' ? `Schließen in ${autoRunTimeLeft}s` :
+                 language === 'pt' ? `Fechando em ${autoRunTimeLeft}s` :
+                 language === 'hi' ? `${autoRunTimeLeft}से में बंद` :
+                 language === 'ko' ? `${autoRunTimeLeft}초 후 닫기` :
+                 `Closing in ${autoRunTimeLeft}s`}
+              </span>
+              <button
+                className="btn btn-sm btn-outline-light"
+                onClick={clearAutoRunTimers}
+                title={language === 'en' ? 'Stop Auto Run' :
+                       language === 'id' ? 'Hentikan Auto Run' :
+                       'Stop Auto Run'}
+              >
+                <i className="bi bi-stop-fill"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Search Suggestions */}
       {(previewSuggestions.length > 0 || showTrending) && (
@@ -1338,8 +1649,6 @@ export function SearchSuggestions() {
             <div className="stats-text mb-2">
               {behaviorMode === 'copy'
                 ? `${terminology.clickAction} • ${t.clickedReplaced}`
-                : behaviorMode === 'floating-tab'
-                ? `${terminology.clickAction} ${t.floatingTab} • ${t.clickedReplaced}`
                 : `${terminology.clickAction} ${selectedEngineData?.name} • ${t.clickedReplaced}`
               }
             </div>
@@ -1398,7 +1707,7 @@ export function SearchSuggestions() {
         </div>
       )}
 
-      {/* Settings Modal */}
+      {/* Settings Modal - Improved Auto Run Position */}
       {showSettings && (
         <div 
           className="modal show d-block" 
@@ -1422,121 +1731,264 @@ export function SearchSuggestions() {
                 ></button>
               </div>
               
-              <div className="modal-body" style={{ padding: '2rem' }}>
+              <div className="modal-body">
                 <div className="row g-4">
-                  <div className="col-12 col-md-6">
-                    <label htmlFor="query-count" className="form-label">{t.queries}</label>
-                    <input
-                      id="query-count"
-                      type="number"
-                      min="10"
-                      max="10000"
-                      value={queryCount}
-                      onChange={(e) => setQueryCount(parseInt(e.target.value) || 100)}
-                      className="form-control"
-                    />
-                    <small className="form-text text-muted">{t.processingTimeWarning}</small>
-                  </div>
-                  
-                  <div className="col-12 col-md-6">
-                    <label htmlFor="search-engine" className="form-label">{t.engine}</label>
-                    <select
-                      id="search-engine"
-                      className="form-select"
-                      value={selectedEngine}
-                      onChange={(e) => setSelectedEngine(e.target.value)}
-                    >
-                      {searchEngines.map((engine) => (
-                        <option key={engine.value} value={engine.value}>
-                          {engine.name}
-                        </option>
-                      ))}
-                    </select>
-                    <small className="form-text text-muted">{t.engineDescription}</small>
-                  </div>
-                  
+                  {/* Generation Settings Card */}
                   <div className="col-12">
-                    <label htmlFor="language-select" className="form-label">{t.language}</label>
-                    <select
-                      id="language-select"
-                      className="form-select"
-                      value={language}
-                      onChange={(e) => setLanguage(e.target.value as any)}
-                    >
-                      {Object.entries(t.languages).map(([code, name]) => (
-                        <option key={code} value={code}>
-                          {name}
-                        </option>
-                      ))}
-                    </select>
-                    <small className="form-text text-muted">{t.languageDescription}</small>
+                    <div className="settings-card">
+                      <div className="settings-section-header">
+                        <h6 className="settings-section-title">
+                          <i className="bi bi-gear me-2"></i>
+                          {language === 'en' ? 'Generation Settings' :
+                           language === 'id' ? 'Pengaturan Generasi' :
+                           language === 'ar' ? 'إعدادات التوليد' :
+                           language === 'zh' ? '生成设置' :
+                           language === 'ja' ? '生成設定' :
+                           language === 'ru' ? 'Настройки генерации' :
+                           language === 'es' ? 'Configuración de Generación' :
+                           language === 'fr' ? 'Paramètres de Génération' :
+                           language === 'de' ? 'Generierungseinstellungen' :
+                           language === 'pt' ? 'Configurações de Geração' :
+                           language === 'hi' ? 'जनरेशन सेटिंग्स' :
+                           language === 'ko' ? '생성 설정' :
+                           'Generation Settings'}
+                        </h6>
+                      </div>
+                      <div className="row g-3">
+                        <div className="col-12 col-md-6">
+                          <label htmlFor="query-count" className="form-label">
+                            {t.queries}
+                          </label>
+                          <input
+                            id="query-count"
+                            type="number"
+                            min="10"
+                            max="10000"
+                            value={queryCount}
+                            onChange={(e) => setQueryCount(parseInt(e.target.value) || 100)}
+                            className="form-control"
+                          />
+                        </div>
+                        
+                        <div className="col-12 col-md-6">
+                          <label htmlFor="search-engine" className="form-label">
+                            {t.engine}
+                          </label>
+                          <select
+                            id="search-engine"
+                            className="form-select"
+                            value={selectedEngine}
+                            onChange={(e) => setSelectedEngine(e.target.value)}
+                          >
+                            {searchEngines.map((engine) => (
+                              <option key={engine.value} value={engine.value}>
+                                {engine.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <div className="col-12">
+                          <label htmlFor="language-select" className="form-label">
+                            {t.language}
+                          </label>
+                          <select
+                            id="language-select"
+                            className="form-select"
+                            value={language}
+                            onChange={(e) => setLanguage(e.target.value as any)}
+                          >
+                            {Object.entries(t.languages).map(([code, name]) => (
+                              <option key={code} value={code}>
+                                {name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   
+                  {/* Behavior Options Card */}
                   <div className="col-12">
-                    <h6 className="mb-3">{t.behaviorOptions}</h6>
-                    
-                    <div className="form-check mb-3">
-                      <input
-                        id="new-tab-mode"
-                        type="radio"
-                        name="behavior-mode"
-                        className="form-check-input"
-                        checked={behaviorMode === 'new-tab'}
-                        onChange={() => setBehaviorMode('new-tab')}
-                      />
-                      <label htmlFor="new-tab-mode" className="form-check-label">
-                        <strong>{t.newTab}</strong>
-                        <br />
-                        <small className="text-muted">{t.newTabDescription}</small>
-                      </label>
-                    </div>
-                    
-                    <div className="form-check mb-3">
-                      <input
-                        id="same-tab-mode"
-                        type="radio"
-                        name="behavior-mode"
-                        className="form-check-input"
-                        checked={behaviorMode === 'same-tab'}
-                        onChange={() => setBehaviorMode('same-tab')}
-                      />
-                      <label htmlFor="same-tab-mode" className="form-check-label">
-                        <strong>{t.sameTab}</strong>
-                        <br />
-                        <small className="text-muted">{t.sameTabDescription}</small>
-                      </label>
-                    </div>
-                    
-                    <div className="form-check mb-3">
-                      <input
-                        id="floating-tab-mode"
-                        type="radio"
-                        name="behavior-mode"
-                        className="form-check-input"
-                        checked={behaviorMode === 'floating-tab'}
-                        onChange={() => setBehaviorMode('floating-tab')}
-                      />
-                      <label htmlFor="floating-tab-mode" className="form-check-label">
-                        <strong>{t.floatingTab}</strong>
-                        <br />
-                        <small className="text-muted">{t.floatingTabDescription}</small>
-                      </label>
-                    </div>
-                    
-                    <div className="form-check">
-                      <input
-                        id="copy-mode"
-                        type="radio"
-                        name="behavior-mode"
-                        className="form-check-input"
-                        checked={behaviorMode === 'copy'}
-                        onChange={() => setBehaviorMode('copy')}
-                      />
-                      <label htmlFor="copy-mode" className="form-check-label">
-                        <strong>{t.copyMode}</strong>
-                        <br />
-                        <small className="text-muted">{t.copyModeDescription}</small>
-                      </label>
+                    <div className="settings-card">
+                      <div className="settings-section-header">
+                        <h6 className="settings-section-title">
+                          <i className="bi bi-mouse me-2"></i>
+                          {t.behaviorOptions}
+                        </h6>
+                      </div>
+                      
+                      <div className="behavior-option">
+                        <div className="form-check">
+                          <input
+                            id="new-tab-mode"
+                            type="radio"
+                            name="behavior-mode"
+                            className="form-check-input"
+                            checked={behaviorMode === 'new-tab'}
+                            onChange={() => setBehaviorMode('new-tab')}
+                          />
+                          <label htmlFor="new-tab-mode" className="form-check-label">
+                            <strong>{t.newTab}</strong>
+                          </label>
+                        </div>
+                      </div>
+                      
+                      <div className="behavior-option">
+                        <div className="form-check">
+                          <input
+                            id="same-tab-mode"
+                            type="radio"
+                            name="behavior-mode"
+                            className="form-check-input"
+                            checked={behaviorMode === 'same-tab'}
+                            onChange={() => setBehaviorMode('same-tab')}
+                          />
+                          <label htmlFor="same-tab-mode" className="form-check-label">
+                            <strong>{t.sameTab}</strong>
+                          </label>
+                        </div>
+                      </div>
+                      
+                      <div className="behavior-option">
+                        <div className="form-check">
+                          <input
+                            id="floating-tab-mode"
+                            type="radio"
+                            name="behavior-mode"
+                            className="form-check-input"
+                            checked={behaviorMode === 'floating-tab'}
+                            onChange={() => setBehaviorMode('floating-tab')}
+                          />
+                          <label htmlFor="floating-tab-mode" className="form-check-label">
+                            <strong>{t.floatingTab}</strong>
+                          </label>
+                        </div>
+                        
+                        {/* Auto Mode Settings - Better visual hierarchy under Floating Tab */}
+                        {behaviorMode === 'floating-tab' && (
+                          <div className="auto-mode-section mt-3">
+                            <div className="form-check mb-3">
+                              <input
+                                id="auto-run-enabled"
+                                type="checkbox"
+                                className="form-check-input"
+                                checked={autoRunEnabled}
+                                onChange={(e) => setAutoRunEnabled(e.target.checked)}
+                              />
+                              <label htmlFor="auto-run-enabled" className="form-check-label">
+                                <strong>
+                                  {language === 'en' ? 'Enable Auto Mode' :
+                                   language === 'id' ? 'Aktifkan Mode Otomatis' :
+                                   language === 'ar' ? 'تمكين الوضع التلقائي' :
+                                   language === 'zh' ? '启用自动模式' :
+                                   language === 'ja' ? '自動モードを有効にする' :
+                                   language === 'ru' ? 'Включить автоматический режим' :
+                                   language === 'es' ? 'Habilitar Modo Automático' :
+                                   language === 'fr' ? 'Activer le Mode Automatique' :
+                                   language === 'de' ? 'Automatischen Modus aktivieren' :
+                                   language === 'pt' ? 'Ativar Modo Automático' :
+                                   language === 'hi' ? 'ऑटो मोड सक्षम करें' :
+                                   language === 'ko' ? '자동 모드 활성화' :
+                                   'Enable Auto Mode'}
+                                </strong>
+                              </label>
+                            </div>
+                            
+                            {autoRunEnabled && (
+                              <div className="auto-mode-controls">
+                                <div className="row g-3">
+                                  <div className="col-6">
+                                    <label htmlFor="auto-run-min-duration" className="form-label">
+                                      <i className="bi bi-speedometer2 me-1"></i>
+                                      {language === 'en' ? 'Min Duration (seconds)' :
+                                       language === 'id' ? 'Durasi Min (detik)' :
+                                       language === 'ar' ? 'الحد الأدنى للمدة (ثواني)' :
+                                       language === 'zh' ? '最小持续时间（秒）' :
+                                       language === 'ja' ? '最小持続時間（秒）' :
+                                       language === 'ru' ? 'Мин. длительность (сек)' :
+                                       language === 'es' ? 'Duración Mín (segundos)' :
+                                       language === 'fr' ? 'Durée Min (secondes)' :
+                                       language === 'de' ? 'Min. Dauer (Sekunden)' :
+                                       language === 'pt' ? 'Duração Mín (segundos)' :
+                                       language === 'hi' ? 'न्यूनतम अवधि (सेकंड)' :
+                                       language === 'ko' ? '최소 지속 시간 (초)' :
+                                       'Min Duration (seconds)'}
+                                    </label>
+                                    <input
+                                      id="auto-run-min-duration"
+                                      type="number"
+                                      min="3"
+                                      max="30"
+                                      value={autoRunMinDuration}
+                                      onChange={(e) => setAutoRunMinDuration(Math.max(3, parseInt(e.target.value) || 7))}
+                                      className="form-control"
+                                    />
+                                  </div>
+                                  <div className="col-6">
+                                    <label htmlFor="auto-run-max-duration" className="form-label">
+                                      <i className="bi bi-speedometer me-1"></i>
+                                      {language === 'en' ? 'Max Duration (seconds)' :
+                                       language === 'id' ? 'Durasi Maks (detik)' :
+                                       language === 'ar' ? 'الحد الأقصى للمدة (ثواني)' :
+                                       language === 'zh' ? '最大持续时间（秒）' :
+                                       language === 'ja' ? '最大持續時間（秒）' :
+                                       language === 'ru' ? 'Макс. длительность (сек)' :
+                                       language === 'es' ? 'Duración Máx (segundos)' :
+                                       language === 'fr' ? 'Durée Max (secondes)' :
+                                       language === 'de' ? 'Max. Dauer (Sekunden)' :
+                                       language === 'pt' ? 'Duração Máx (segundos)' :
+                                       language === 'hi' ? 'अधिकतम अवधि (सेकंड)' :
+                                       language === 'ko' ? '최대 지속 시간 (초)' :
+                                       'Max Duration (seconds)'}
+                                    </label>
+                                    <input
+                                      id="auto-run-max-duration"
+                                      type="number"
+                                      min={autoRunMinDuration}
+                                      max="60"
+                                      value={autoRunMaxDuration}
+                                      onChange={(e) => setAutoRunMaxDuration(Math.max(autoRunMinDuration, parseInt(e.target.value) || 11))}
+                                      className="form-control"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="behavior-option">
+                        <div className="form-check">
+                          <input
+                            id="copy-mode"
+                            type="radio"
+                            name="behavior-mode"
+                            className="form-check-input"
+                            checked={behaviorMode === 'copy'}
+                            onChange={() => setBehaviorMode('copy')}
+                          />
+                          <label htmlFor="copy-mode" className="form-check-label">
+                            <strong>
+                        {language === 'en' ? 'Copy to Clipboard' :
+                         language === 'id' ? 'Salin ke Clipboard' :
+                         language === 'ar' ? 'نسخ إلى الحافظة' :
+                         language === 'zh' ? '复制到剪贴板' :
+                         language === 'ja' ? 'クリップボードにコピー' :
+                         language === 'ru' ? 'Скопировать в буфер' :
+                         language === 'es' ? 'Copiar al Portapapeles' :
+                         language === 'fr' ? 'Copier dans le Presse-papiers' :
+                         language === 'de' ? 'In Zwischenablage kopieren' :
+                         language === 'pt' ? 'Copiar para Área de Transferência' :
+                         language === 'hi' ? 'क्लिपबोर्ड में कॉपी करें' :
+                         language === 'ko' ? '클립보드에 복사' :
+                         'Copy to Clipboard'}
+                      </strong>
+                          </label>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1567,6 +2019,7 @@ export function SearchSuggestions() {
           className="floating-tab-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
+              clearAutoRunTimers();
               setFloatingTab({ isOpen: false, url: '', title: '', hasError: false });
             }
           }}
@@ -1577,7 +2030,10 @@ export function SearchSuggestions() {
               <div className="floating-tab-controls">
                 <div 
                   className="floating-tab-control close" 
-                  onClick={() => setFloatingTab({ isOpen: false, url: '', title: '', hasError: false })}
+                  onClick={() => {
+                    clearAutoRunTimers();
+                    setFloatingTab({ isOpen: false, url: '', title: '', hasError: false });
+                  }}
                   title={t.close || 'Close'}
                 ></div>
                 <div className="floating-tab-control minimize"></div>
@@ -1587,15 +2043,26 @@ export function SearchSuggestions() {
                 {floatingTab.title}
               </div>
               <div className="d-flex align-items-center gap-2">
-                {/* Mobile/Desktop Toggle */}
-                <div className="btn-group" role="group" aria-label={t.viewMode}>
-
-
-                </div>
+                {/* Auto Run Status (when active) */}
+                {isAutoRunning && (
+                  <div className="d-flex align-items-center gap-2 floating-tab-timer">
+                    <div 
+                      className="spinner-border spinner-border-sm" 
+                      role="status" 
+                      style={{ width: '16px', height: '16px' }}
+                    >
+                      <span className="visually-hidden">Loading...</span>
+                    </div>
+                    <span className="small fw-medium">{autoRunTimeLeft}s</span>
+                  </div>
+                )}
                 
                 <button
                   className="floating-tab-close-btn"
-                  onClick={() => setFloatingTab({ isOpen: false, url: '', title: '', hasError: false })}
+                  onClick={() => {
+                    clearAutoRunTimers();
+                    setFloatingTab({ isOpen: false, url: '', title: '', hasError: false });
+                  }}
                   title={t.close || 'Close'}
                 >
                   <i className="bi bi-x"></i>
@@ -1615,6 +2082,7 @@ export function SearchSuggestions() {
                     className="btn btn-primary"
                     onClick={() => {
                       window.open(floatingTab.url, '_blank');
+                      clearAutoRunTimers();
                       setFloatingTab({ isOpen: false, url: '', title: '', hasError: false });
                     }}
                   >

@@ -157,7 +157,7 @@ export const translations: Record<string, Translations> = {
       bing: "Bing", 
       duckduckgo: "DuckDuckGo",
       yahoo: "Yahoo",
-      bingedgear: "Bing Edgear",
+      bingedgear: "Q-Bing",
     },
     
     languages: {
@@ -272,7 +272,7 @@ export const translations: Record<string, Translations> = {
       bing: "Bing",
       duckduckgo: "DuckDuckGo", 
       yahoo: "Yahoo",
-      bingedgear: "Bing Edgear",
+      bingedgear: "Q-Bing",
     },
     
     languages: {
@@ -387,7 +387,7 @@ export const translations: Record<string, Translations> = {
       bing: "بينغ",
       duckduckgo: "دك دك جو",
       yahoo: "ياهو",
-      bingedgear: "بينغ إدجير",
+      bingedgear: "Q-Bing",
     },
     
     languages: {
@@ -474,6 +474,12 @@ export const translations: Record<string, Translations> = {
     all: "الكل",
     
     smartSearchGenerator: "مولد اقتراحات البحث",
+    
+    csvDownloadedAt: "تم التحميل في",
+    csvColumnNumber: "رقم",
+    csvColumnSuggestion: "اقتراح البحث",
+    csvColumnStatus: "الحالة",
+    csvColumnOpenedTime: "وقت الوصول",
   },
   
   zh: {
@@ -496,7 +502,7 @@ export const translations: Record<string, Translations> = {
       bing: "必应",
       duckduckgo: "DuckDuckGo",
       yahoo: "雅虎",
-      bingedgear: "必应 Edgear",
+      bingedgear: "Q-Bing",
     },
     
     languages: {
@@ -583,6 +589,12 @@ export const translations: Record<string, Translations> = {
     all: "全部",
     
     smartSearchGenerator: "搜索建议生成器",
+    
+    csvDownloadedAt: "下载时间",
+    csvColumnNumber: "序号",
+    csvColumnSuggestion: "搜索建议",
+    csvColumnStatus: "状态",
+    csvColumnOpenedTime: "访问时间",
   },
   
   ja: {
@@ -605,7 +617,7 @@ export const translations: Record<string, Translations> = {
       bing: "ビング",
       duckduckgo: "DuckDuckGo",
       yahoo: "ヤフー",
-      bingedgear: "ビング Edgear",
+      bingedgear: "Q-Bing",
     },
     
     languages: {
@@ -692,6 +704,12 @@ export const translations: Record<string, Translations> = {
     all: "すべて",
     
     smartSearchGenerator: "検索提案ジェネレーター",
+    
+    csvDownloadedAt: "ダウンロード日時",
+    csvColumnNumber: "番号",
+    csvColumnSuggestion: "検索提案",
+    csvColumnStatus: "ステータス",
+    csvColumnOpenedTime: "アクセス時間",
   },
   
   ru: {
@@ -714,7 +732,7 @@ export const translations: Record<string, Translations> = {
       bing: "Bing",
       duckduckgo: "DuckDuckGo",
       yahoo: "Yahoo",
-      bingedgear: "Bing Edgear",
+      bingedgear: "Q-Bing",
     },
     
     languages: {
@@ -801,6 +819,12 @@ export const translations: Record<string, Translations> = {
     all: "Все",
     
     smartSearchGenerator: "Генератор поисковых предложений",
+    
+    csvDownloadedAt: "Загружено",
+    csvColumnNumber: "№",
+    csvColumnSuggestion: "Поисковое предложение",
+    csvColumnStatus: "Статус",
+    csvColumnOpenedTime: "Время доступа",
   },
   
   es: {
@@ -823,7 +847,7 @@ export const translations: Record<string, Translations> = {
       bing: "Bing",
       duckduckgo: "DuckDuckGo",
       yahoo: "Yahoo",
-      bingedgear: "Bing Edgear",
+      bingedgear: "Q-Bing",
     },
     
     languages: {
@@ -910,6 +934,12 @@ export const translations: Record<string, Translations> = {
     all: "Todo",
     
     smartSearchGenerator: "Generador de Sugerencias de Búsqueda",
+    
+    csvDownloadedAt: "Descargado el",
+    csvColumnNumber: "N°",
+    csvColumnSuggestion: "Sugerencia de Búsqueda",
+    csvColumnStatus: "Estado",
+    csvColumnOpenedTime: "Tiempo de Acceso",
   },
   
   fr: {
@@ -932,7 +962,7 @@ export const translations: Record<string, Translations> = {
       bing: "Bing", 
       duckduckgo: "DuckDuckGo",
       yahoo: "Yahoo",
-      bingedgear: "Bing Edgear",
+      bingedgear: "Q-Bing",
     },
     
     languages: {
@@ -1019,6 +1049,12 @@ export const translations: Record<string, Translations> = {
     all: "Tout",
     
     smartSearchGenerator: "Générateur de Suggestions de Recherche",
+    
+    csvDownloadedAt: "Téléchargé le",
+    csvColumnNumber: "N°",
+    csvColumnSuggestion: "Suggestion de Recherche",
+    csvColumnStatus: "Statut",
+    csvColumnOpenedTime: "Heure d'Accès",
   },
   
   de: {
@@ -1041,7 +1077,7 @@ export const translations: Record<string, Translations> = {
       bing: "Bing",
       duckduckgo: "DuckDuckGo",
       yahoo: "Yahoo",
-      bingedgear: "Bing Edgear",
+      bingedgear: "Q-Bing",
     },
     
     languages: {
@@ -1128,6 +1164,12 @@ export const translations: Record<string, Translations> = {
     all: "Alle",
     
     smartSearchGenerator: "Suchvorschläge Generator",
+    
+    csvDownloadedAt: "Heruntergeladen am",
+    csvColumnNumber: "Nr.",
+    csvColumnSuggestion: "Suchvorschlag",
+    csvColumnStatus: "Status",
+    csvColumnOpenedTime: "Zugriffszeit",
   },
   
   pt: {
@@ -1150,7 +1192,7 @@ export const translations: Record<string, Translations> = {
       bing: "Bing",
       duckduckgo: "DuckDuckGo",
       yahoo: "Yahoo",
-      bingedgear: "Bing Edgear",
+      bingedgear: "Q-Bing",
     },
     
     languages: {
@@ -1172,7 +1214,7 @@ export const translations: Record<string, Translations> = {
     engine: "Motor de Busca",
     processingTimeWarning: "Números grandes podem demorar mais para processar",
     engineDescription: "Escolha seu motor de busca preferido",
-    languageDescription: "Selecione idioma para sugestões e interface",
+    languageDescription: "Selecione idioma para sugerências e interface",
     behaviorOptions: "Opções de Comportamento",
     newTab: "Abrir em Nova Aba",
     newTabDescription: "Abrir resultados de pesquisa em novas abas do navegador",
@@ -1194,13 +1236,13 @@ export const translations: Record<string, Translations> = {
     
     startTyping: "Comece a digitar para gerar sugestões de pesquisa",
     configureSettings: "Configure número de consultas, motor de busca e idioma nas configurações",
-    clickShuffle: "Clique no botão {icon} para gerar sugestões de pesquisa aleatórias",
+    clickShuffle: "Clique no botão {icon} para gerar sugerências de pesquisa aleatórias",
     noSuggestions: "Nenhuma sugestão encontrada para",
-    allExplored: "Todas as sugestões foram exploradas! Gere novas ou aumente o número de consultas.",
+    allExplored: "Todas as sugerências foram exploradas! Gere novas ou aumente o número de consultas.",
     
     clickToSearch: "Clique para pesquisar no",
     clickToCopy: "Clique para copiar texto",
-    clickedReplaced: "Sugestões clicadas serão substituídas por novas",
+    clickedReplaced: "Sugerências clicadas serão substituídas por novas",
     alreadyExplored: "Já Explorado",
     notYetExplored: "Ainda Não Explorado",
     
@@ -1236,7 +1278,13 @@ export const translations: Record<string, Translations> = {
     
     all: "Tudo",
     
-    smartSearchGenerator: "Gerador de Sugestões de Pesquisa",
+    smartSearchGenerator: "Gerador de Sugerências de Pesquisa",
+    
+    csvDownloadedAt: "Baixado em",
+    csvColumnNumber: "N°",
+    csvColumnSuggestion: "Sugestão de Pesquisa",
+    csvColumnStatus: "Status",
+    csvColumnOpenedTime: "Tempo de Acesso",
   },
   
   hi: {
@@ -1259,7 +1307,7 @@ export const translations: Record<string, Translations> = {
       bing: "बिंग",
       duckduckgo: "DuckDuckGo",
       yahoo: "याहू",
-      bingedgear: "बिंग Edgear",
+      bingedgear: "Q-Bing",
     },
     
     languages: {
@@ -1346,6 +1394,12 @@ export const translations: Record<string, Translations> = {
     all: "सभी",
     
     smartSearchGenerator: "खोज सुझाव जेनरेटर",
+    
+    csvDownloadedAt: "डाउनलोड किया गया",
+    csvColumnNumber: "सं",
+    csvColumnSuggestion: "खोज सुझाव",
+    csvColumnStatus: "स्थिति",
+    csvColumnOpenedTime: "पहुंच का समय",
   },
   
   ko: {
@@ -1368,7 +1422,7 @@ export const translations: Record<string, Translations> = {
       bing: "빙",
       duckduckgo: "DuckDuckGo",
       yahoo: "야후",
-      bingedgear: "빙 Edgear",
+      bingedgear: "Q-Bing",
     },
     
     languages: {
@@ -1455,6 +1509,12 @@ export const translations: Record<string, Translations> = {
     all: "모두",
     
     smartSearchGenerator: "검색 제안 생성기",
+    
+    csvDownloadedAt: "다운로드됨",
+    csvColumnNumber: "번호",
+    csvColumnSuggestion: "검색 제안",
+    csvColumnStatus: "상태",
+    csvColumnOpenedTime: "접근 시간",
   },
 };
 

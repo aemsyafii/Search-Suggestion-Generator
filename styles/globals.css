@@ -31,6 +31,10 @@
   --app-hover: #f8f9fa;
   --app-input-bg: #ffffff;
   
+  /* Auto Mode Timer Colors - Better contrast */
+  --auto-run-timer-color: rgba(255, 255, 255, 0.95);
+  --floating-tab-timer-color: #0d6efd;
+  
   /* Subtle suggestion colors */
   --suggestion-unopened-bg: #ffffff;
   --suggestion-unopened-border: rgba(0, 0, 0, 0.05);
@@ -57,6 +61,12 @@
   --section-opened-text: #6c757d;
   --section-opened-hover: rgba(108, 117, 125, 0.03);
   
+  /* Settings card variables */
+  --settings-card-bg: #ffffff;
+  --settings-card-border: rgba(0, 0, 0, 0.08);
+  --settings-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --settings-section-border: rgba(0, 0, 0, 0.06);
+  
   /* Subtle section box colors */
   --section-box-unopened-bg: #ffffff;
   --section-box-unopened-border: rgba(13, 110, 253, 0.1);
@@ -77,6 +87,10 @@
   --app-border-focus: rgba(102, 179, 255, 0.2);
   --app-hover: #343a40;
   --app-input-bg: #212529;
+  
+  /* Auto Mode Timer Colors - Better contrast in dark mode */
+  --auto-run-timer-color: rgba(255, 255, 255, 0.9);
+  --floating-tab-timer-color: #66b3ff;
   
   --suggestion-unopened-bg: #212529;
   --suggestion-unopened-border: rgba(255, 255, 255, 0.05);
@@ -109,6 +123,12 @@
   --section-box-opened-bg: #212529;
   --section-box-opened-border: rgba(173, 181, 189, 0.1);
   --section-box-opened-shadow: 0 2px 8px rgba(173, 181, 189, 0.04);
+  
+  /* Settings card variables - dark mode */
+  --settings-card-bg: #343a40;
+  --settings-card-border: rgba(255, 255, 255, 0.08);
+  --settings-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  --settings-section-border: rgba(255, 255, 255, 0.06);
 }
 
 /* Enhanced responsive typography - better readability */
@@ -646,12 +666,154 @@ body.modal-open {
   overflow: hidden;
 }
 
+/* Auto Mode Timer Styling - Improved Contrast */
+.auto-mode-timer {
+  color: var(--auto-run-timer-color) !important;
+  font-weight: 500;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Floating Tab Timer - Better visibility */
+.floating-tab-timer {
+  color: var(--floating-tab-timer-color) !important;
+}
+
+.floating-tab-timer .spinner-border {
+  border-color: var(--floating-tab-timer-color);
+  border-right-color: transparent;
+}
+
+.floating-tab-timer .small {
+  color: var(--floating-tab-timer-color) !important;
+  font-weight: 600;
+  text-shadow: none;
+}
+
+/* Dark mode timer adjustments */
+[data-bs-theme="dark"] .auto-mode-timer {
+  color: var(--auto-run-timer-color) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+[data-bs-theme="dark"] .floating-tab-timer {
+  color: var(--floating-tab-timer-color) !important;
+}
+
+[data-bs-theme="dark"] .floating-tab-timer .spinner-border {
+  border-color: var(--floating-tab-timer-color);
+  border-right-color: transparent;
+}
+
+[data-bs-theme="dark"] .floating-tab-timer .small {
+  color: var(--floating-tab-timer-color) !important;
+  font-weight: 600;
+}
+
+/* Settings Modal Responsive Improvements */
+@media (max-width: 768px) {
+  .settings-card {
+    padding: 1rem;
+    border-radius: 8px;
+  }
+  
+  .settings-section-header {
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  
+  .settings-section-title {
+    font-size: 0.95rem;
+    gap: 0.5rem;
+  }
+  
+  .behavior-option {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .behavior-option .form-check-label {
+    font-size: 0.9rem;
+    gap: 0.5rem;
+    padding-left: 0.5rem;
+  }
+  
+  .auto-mode-section {
+    padding: 0.875rem;
+    margin-left: 1.5rem;
+    margin-right: 0.5rem;
+    margin-top: 0.875rem;
+  }
+  
+  .auto-mode-section::before {
+    left: -1rem;
+    top: 1rem;
+    width: 0.625rem;
+  }
+  
+  .auto-run-controls {
+    margin-top: 1rem;
+    padding-top: 1rem;
+  }
+  
+  .auto-run-controls .form-label {
+    font-size: 0.8rem;
+    gap: 0.4rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .settings-card {
+    padding: 0.875rem;
+    margin-bottom: 1rem;
+  }
+  
+  .settings-section-title {
+    font-size: 0.9rem;
+    gap: 0.4rem;
+  }
+  
+  .behavior-option {
+    padding: 0.625rem;
+    margin-bottom: 0.625rem;
+  }
+  
+  .behavior-option .form-check-label {
+    font-size: 0.85rem;
+    gap: 0.4rem;
+    padding-left: 0.4rem;
+  }
+  
+  .auto-mode-section {
+    padding: 0.75rem;
+    margin-left: 1.25rem;
+    margin-right: 0.4rem;
+    margin-top: 0.75rem;
+  }
+  
+  .auto-mode-section::before {
+    left: -0.875rem;
+    top: 0.875rem;
+    width: 0.5rem;
+  }
+  
+  .auto-run-controls .form-label {
+    font-size: 0.75rem;
+  }
+  
+  .auto-run-controls .form-control {
+    font-size: 0.8rem;
+    padding: 0.5rem;
+  }
+}
+
 /* Enhanced accessibility */
 @media (prefers-reduced-motion: reduce) {
   .modal,
   .modal-content,
   .btn,
-  .suggestion-item {
+  .suggestion-item,
+  .settings-card,
+  .behavior-option {
     transition: none !important;
     animation: none !important;
   }
@@ -680,6 +842,233 @@ body.modal-open {
 
 .suggestion-item.opened:hover .bi-check-circle-fill {
   opacity: 1;
+}
+
+/* Settings Card Layout - Modern & Clean */
+.settings-card {
+  background: var(--settings-card-bg);
+  border: 1px solid var(--settings-card-border);
+  border-radius: clamp(8px, 2vw, 12px);
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  box-shadow: var(--settings-card-shadow);
+  transition: all 0.2s ease;
+  margin-bottom: clamp(1rem, 2.5vw, 1.5rem);
+}
+
+.settings-card:last-child {
+  margin-bottom: 0;
+}
+
+.settings-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+[data-bs-theme="dark"] .settings-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Settings Section Headers */
+.settings-section-header {
+  border-bottom: 1px solid var(--settings-section-border);
+  padding-bottom: clamp(0.75rem, 1.8vw, 1rem);
+  margin-bottom: clamp(1rem, 2.5vw, 1.5rem);
+}
+
+.settings-section-title {
+  color: var(--app-text);
+  font-size: clamp(1rem, 2.5vw, 1.125rem);
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 1.2vw, 0.75rem);
+  line-height: 1.4;
+}
+
+.settings-section-title i {
+  color: var(--app-muted);
+  font-size: clamp(1rem, 2.3vw, 1.1rem);
+  flex-shrink: 0;
+}
+
+/* Behavior Options - Better Layout */
+.behavior-option {
+  margin-bottom: clamp(0.75rem, 1.8vw, 1rem);
+  padding: clamp(0.75rem, 1.8vw, 1rem);
+  border-radius: clamp(6px, 1.5vw, 8px);
+  background: rgba(0, 0, 0, 0.01);
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.behavior-option:hover {
+  background: var(--app-hover);
+  border-color: var(--app-border);
+}
+
+.behavior-option:last-child {
+  margin-bottom: 0;
+}
+
+.behavior-option .form-check {
+  margin-bottom: 0;
+}
+
+.behavior-option .form-check-input {
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+}
+
+.behavior-option .form-check-label {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 1.2vw, 0.75rem);
+  font-size: clamp(0.9rem, 2.3vw, 1rem);
+  line-height: 1.4;
+  cursor: pointer;
+  padding-left: clamp(0.5rem, 1.2vw, 0.75rem);
+}
+
+.behavior-option .form-check-label i {
+  color: var(--app-muted);
+  font-size: clamp(1rem, 2.3vw, 1.1rem);
+  flex-shrink: 0;
+}
+
+.behavior-option .form-check-label strong {
+  color: var(--app-text);
+  font-weight: 500;
+}
+
+/* Selected behavior option */
+.behavior-option:has(.form-check-input:checked) {
+  background: var(--section-unopened-hover);
+  border-color: var(--section-unopened-border);
+}
+
+.behavior-option:has(.form-check-input:checked) .form-check-label i {
+  color: var(--section-unopened-text);
+}
+
+.behavior-option:has(.form-check-input:checked) .form-check-label strong {
+  color: var(--section-unopened-text);
+}
+
+/* Auto Mode Section - Better Visual Hierarchy */
+.auto-mode-section {
+  background: var(--section-unopened-hover);
+  border: 1px solid var(--section-unopened-border);
+  border-radius: clamp(6px, 1.5vw, 8px);
+  padding: clamp(0.875rem, 2.2vw, 1.125rem);
+  margin-top: clamp(0.875rem, 2.2vw, 1.125rem);
+  margin-left: clamp(2rem, 4.5vw, 2.75rem);
+  margin-right: clamp(0.5rem, 1.2vw, 0.75rem);
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.auto-mode-section:hover {
+  background: var(--section-unopened-hover);
+  border-color: var(--section-unopened-border-hover);
+}
+
+/* Visual connector for better hierarchy */
+.auto-mode-section::before {
+  content: '';
+  position: absolute;
+  left: clamp(-1.25rem, -2.8vw, -1.5rem);
+  top: clamp(1.125rem, 2.8vw, 1.375rem);
+  width: clamp(0.75rem, 1.8vw, 1rem);
+  height: 1px;
+  background: var(--section-unopened-border);
+  transition: all 0.2s ease;
+}
+
+.auto-mode-section:hover::before {
+  background: var(--section-unopened-border-hover);
+}
+
+.auto-mode-section .form-check-label {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 1.2vw, 0.75rem);
+  font-size: clamp(0.85rem, 2.1vw, 0.95rem);
+  line-height: 1.4;
+  cursor: pointer;
+  color: var(--section-unopened-text);
+  padding-left: clamp(0.25rem, 0.6vw, 0.375rem);
+}
+
+.auto-mode-section .form-check-label i {
+  color: var(--section-unopened-text);
+  font-size: clamp(0.9rem, 2.1vw, 1rem);
+  flex-shrink: 0;
+}
+
+.auto-mode-section .form-check-label strong {
+  color: var(--section-unopened-text);
+  font-weight: 500;
+}
+
+/* Auto Mode Controls */
+.auto-mode-controls {
+  margin-top: clamp(1rem, 2.5vw, 1.25rem);
+  padding-top: clamp(1rem, 2.5vw, 1.25rem);
+  border-top: 1px solid var(--section-unopened-border);
+}
+
+.auto-mode-controls .form-label {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.4rem, 1vw, 0.6rem);
+  font-size: clamp(0.8rem, 2vw, 0.875rem);
+  font-weight: 500;
+  color: var(--section-unopened-text);
+  margin-bottom: clamp(0.4rem, 1vw, 0.6rem);
+}
+
+.auto-mode-controls .form-label i {
+  color: var(--section-unopened-text);
+  font-size: clamp(0.8rem, 1.8vw, 0.9rem);
+  flex-shrink: 0;
+}
+
+.auto-mode-controls .form-control {
+  border-color: var(--section-unopened-border);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.auto-mode-controls .form-control:focus {
+  border-color: var(--section-unopened-text);
+  box-shadow: 0 0 0 2px var(--section-unopened-hover);
+}
+
+/* Dark mode auto-mode adjustments */
+[data-bs-theme="dark"] .auto-mode-section {
+  background: rgba(102, 179, 255, 0.03);
+  border-color: rgba(102, 179, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .auto-mode-section:hover {
+  border-color: rgba(102, 179, 255, 0.15);
+}
+
+[data-bs-theme="dark"] .auto-mode-section::before {
+  background: rgba(102, 179, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .auto-mode-section:hover::before {
+  background: rgba(102, 179, 255, 0.15);
+}
+
+[data-bs-theme="dark"] .auto-mode-controls {
+  border-top-color: rgba(102, 179, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .auto-mode-controls .form-control {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--app-text);
 }
 
 /* Enhanced form labels */
